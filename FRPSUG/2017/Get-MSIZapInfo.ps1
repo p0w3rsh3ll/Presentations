@@ -139,23 +139,17 @@ Process {
             # Build the main subkey
             $subkey = Join-Path -Path $i.PSParentPath -ChildPath $i.PSChildName
   
-  
             # Get the whole list of patches
-            if (Test-Path "$subkey\Patches")
-            {
-                $patches =  Get-Childitem "$subkey\Patches"
-                foreach ($k in $patches)
-                {
-                    $patchkey = Join-Path -Path $k.PSParentPath -ChildPath $k.PSChildName
-  
-                    $PatchObject = New-Object -TypeName PSObject -Property @{
+            if (Test-Path -Path "$subkey\Patches" -PathType Container) {
+                
+                Get-Childitem -Path "$subkey\Patches" | 
+                ForEach-Object {
+                    $k = $_
+                    $patchesar += [PSCustomObject]@{
                         RegistryGUID = $k.PSChildName
                         InstalledBy = $UserWhoInstalled
-                        LocalPackage = (Get-ItemProperty -Path $patchkey).LocalPackage
-                        }
-  
-                    # Add our object to the global array
-                    $patchesar += $PatchObject
+                        LocalPackage = (Get-ItemProperty -Path (Join-Path -Path $k.PSParentPath -ChildPath $k.PSChildName)).LocalPackage
+                    }
                 }
             }
   
