@@ -110,18 +110,20 @@ Begin {
 Process {  
     # Main: read info in the registry and populate array with object that have the properties we are looking for
   
-    if (Test-Path HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData)
-    {
-        $root = Get-Childitem HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData
+    if (Test-Path -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData' -PathType Container) {
+        
   
         # Initialize the patches and products global array
         $patchesar = @()
         $prodcutssar = @()
   
         # Cycle through all SIDs
-        foreach ($i in $root)
-        {
-            Write-Verbose -Message "Dealing with $($i.Name)" #-Verbose:$true
+        Get-Childitem -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData' | 
+        ForEach-Object {
+        
+            $i = $_
+            
+            Write-Verbose -Message "Dealing with $($i.Name)"
   
             # Convert the SID to an account name
             $UserWhoInstalled = $(
