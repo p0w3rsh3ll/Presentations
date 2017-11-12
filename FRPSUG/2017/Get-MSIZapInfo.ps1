@@ -1,6 +1,5 @@
 
 Function Get-MSIZapInfo {
-[CmdletBinding()]
 <#
   
 .SYNOPSIS    
@@ -75,6 +74,7 @@ Function Get-MSIZapInfo {
     Show non supersed patches of all installed MSI products
   
 #>
+[CmdletBinding()]
 Param(
     [parameter(Mandatory=$false,Position=0)]
     [switch]$ShowSupersededPatches
