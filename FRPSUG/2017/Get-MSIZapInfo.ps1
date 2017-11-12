@@ -80,178 +80,32 @@ Param(
     [switch]$ShowSupersededPatches
 )
 Begin {  
-Function Test-MatchFromHashTable
-{
-param(
-[parameter(Mandatory=$true,Position=0)][system.array]$array = $null,
-[parameter(Mandatory=$true,Position=1)][system.string]$testkey = $null,
-[parameter(Mandatory=$true,Position=2)][system.string]$string = $null
-)
- if ($string -ne $null)
- {
-    $occurences = @()
-    foreach ($i in $array)
-    {
-        if ($i.$testkey -match $string)
-        {
-        $occurences += $i
-        }
+  
+    # idea from https://adameyob.com/2016/03/convert-program-guid-product-code/
+    Function Convert-RegistryGUID {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory)]
+        [ValidateLength(32,32)]
+        [string]$String
+    )
+    Begin {}
+    Process {
+        $raw = [regex]::replace($String, '[^a-zA-Z0-9]','')
+        (
+            [guid](
+                -join (
+                    7,6,5,4,3,2,1,0,11,10,9,8,15,14,13,12,17,16,19,18,21,20,23,22,25,24,27,26,29,28,31,30,32 |
+                    ForEach-Object {
+                        $raw[$_]
+                    }
+                )
+            )
+        ).Tostring('D').ToUpper()
     }
-    if ($occurences -ne $null)
-    {
-     return $true
-    } else {
-     return $false
+    End{}
     }
- } else {
-    Write-Host -ForegroundColor Red -Object "Cannot use this function to test against a null string"
-    break
- }    
-} # end of function
-  
-Function Get-MatchFromHashTable
-{
-param(
-[parameter(Mandatory=$true,Position=0)][system.array]$array = $null,
-[parameter(Mandatory=$true,Position=1)][system.string]$testkey = $null,
-[parameter(Mandatory=$true,Position=2)][system.string]$string = $null
-)
-    $occurences = @()
-    foreach ($i in $array)
-    {
-        if ($i.$testkey -match $string)
-        {
-        $occurences += $i
-        }
-    }
-    return $occurences
-} # end of function
-  
-function ConvertTo-NtAccount
-{
-<#
-  
-.SYNOPSIS    
-    Translate a SID to its displayname
-  
-.DESCRIPTION  
-    Translate a SID to its displayname
-  
-.PARAMETER Sid
-    Provide a SID
-  
-.NOTES    
-    Name: ConvertTo-NtAccount
-    Author: thepowershellguy
-  
-.LINK    
-    http://thepowershellguy.com/blogs/posh/archive/2007/01/23/powershell-converting-accountname-to-sid-and-vice-versa.aspx
-  
-.EXAMPLE
-    ConvertTo-NtAccount S-1-1-0
-    Convert a well-known SID to its displayname
-  
-#>
-  
-param(
-[parameter(Mandatory=$true,Position=0)][system.string]$Sid = $null
-)
- begin
- {
-    $obj = new-object system.security.principal.securityidentifier($sid)
- }
- process
- {
-    try
-    {
-        $obj.translate([system.security.principal.ntaccount])
-    }
-    catch
-    {
-        # To remove the silent fail, uncomment next line
-        # $_
-    }
- }
- end
- {
- }
-}
-  
-function ConvertTo-Sid
-{
-<#
-  
-.SYNOPSIS    
-    Translate a user name to a SID
-  
-.DESCRIPTION  
-    Translate a user name to a SID
-  
-.PARAMETER Sid
-    Provide a username
-  
-.NOTES    
-    Name: ConvertTo-Sid
-    Author: thepowershellguy
-  
-.LINK    
-    http://thepowershellguy.com/blogs/posh/archive/2007/01/23/powershell-converting-accountname-to-sid-and-vice-versa.aspx
-  
-.EXAMPLE
-    (ConvertTo-Sid "Domain\Administrator").Value
-    Get the SID of the Active Directory Domain admininstrator
-  
-.EXAMPLE
-    ConvertTo-Sid "Administrator"
-    Get the SID of the local administrator account
-#>
-  
-param(
-[parameter(Mandatory=$true,Position=0)][system.string]$NtAccount = $null
-)
- begin
- {
-    $obj = new-object system.security.principal.NtAccount($NTaccount)
- } 
- process
- {
-    try
-    {
-        $obj.translate([system.security.principal.securityidentifier])
-    }
-    catch
-    {
-        # To remove the silent fail, uncomment next line
-        # $_
-    }
- } 
- end
- {
- }
-}
-  
-Function Convert-RegistryGUID
-{
-param(
-    [parameter(Mandatory=$true)]
-    [ValidateLength(32,32)]
-    [system.string]
-    $string
-)
-  
-    $string | % {
-        -join (
-            -join ( $_.Substring(0,8).ToCharArray()[(($_.Substring(0,8).ToCharArray()).Count - 1)..0]),"-",
-            -join ( $_.Substring(8,4).ToCharArray()[(($_.Substring(8,4).ToCharArray()).Count - 1)..0]),"-",
-            -join ( $_.Substring(12,4).ToCharArray()[(($_.Substring(12,4).ToCharArray()).Count - 1)..0]),"-",
-            -join ( ($_.Substring(16,4) -split "(?<=\G.{2})",4 | % { $_.ToCharArray()[($_.ToCharArray().Count - 1)..0] })),"-",
-            -join ( ($_.Substring(20,12) -split "(?<=\G.{2})",6 | % { $_.ToCharArray()[($_.ToCharArray().Count - 1)..0] }))
-        )
-    }
-  
-}
-# Convert-RegistryGUID -String "00004109110000000000000000F01FEC"
-  
+    # Convert-RegistryGUID "00004109110000000000000000F01FEC"
 }
 Process {  
 # Main: read info in the registry and populate array with object that have the properties we are looking for
