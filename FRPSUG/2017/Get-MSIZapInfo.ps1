@@ -124,7 +124,15 @@ Process {
             Write-Verbose -Message "Dealing with $($i.Name)" #-Verbose:$true
   
             # Convert the SID to an account name
-            $UserWhoInstalled = ConvertTo-NtAccount $i.PSChildName
+            $UserWhoInstalled = $(
+                try {
+                    (New-Object System.Security.Principal.SecurityIdentifier -ArgumentList "$($i.PSChildName)").translate(
+                    [System.Security.Principal.NTAccount]
+                    ).Value
+                } catch {
+                    "$($i.PSChildName)"
+                }
+            )
   
             # Build the main subkey
             $subkey = Join-Path -Path $i.PSParentPath -ChildPath $i.PSChildName
