@@ -1,5 +1,6 @@
-#Requires -Version 2.0
-  
+
+Function Get-MSIZapInfo {
+[CmdletBinding()]
 <#
   
 .SYNOPSIS    
@@ -20,63 +21,65 @@
     https://p0w3rsh3ll.wordpress.com
   
 .EXAMPLE    
-    Get-MSIZapInfo.ps1 | fl -property *
+    Get-MSIZapInfo | fl -property *
     Pipe it into format-list and show all the returned properties
   
 .EXAMPLE    
-    Get-MSIZapInfo.ps1 | fl -property Displayname
+    Get-MSIZapInfo | fl -property Displayname
     Pipe it into format-list and show only the displayname of MSI installed products
   
 .EXAMPLE
-    Get-MSIZapInfo.ps1 | Format-Custom -Depth 2
+    Get-MSIZapInfo | Format-Custom -Depth 2
     Pipe it into format-custom to explore its depth
   
 .EXAMPLE    
-    .\Get-MSIZapInfo.ps1 | Select-Object -Property Displayname,Displayversion,Publisher | ft -AutoSize -HideTableHeaders    
+    Get-MSIZapInfo | Select-Object -Property Displayname,Displayversion,Publisher | ft -AutoSize -HideTableHeaders    
     Select some properties and pipe it into the format-table cmdlet
   
 .EXAMPLE
-    .\Get-MSIZapInfo.ps1 -ShowSupersededPatches |  ft -AutoSize -Property LocalPackage,Superseded,DisplayName
+    Get-MSIZapInfo -ShowSupersededPatches |  ft -AutoSize -Property LocalPackage,Superseded,DisplayName
     Show superseded patches of all MSI products installed and filter some of its properties using the format-table cmdlet
   
 .EXAMPLE
-    (.\Get-MSIZapInfo.ps1 | Where-Object -FilterScript  {$_.Displayname -match "LifeCam"}) | fl -Property *
+    (Get-MSIZapInfo | Where-Object -FilterScript  {$_.Displayname -match "LifeCam"}) | 
+    fl -Property *
     Find a specific MSI product installed by its displayname and show all its properties
   
 .EXAMPLE
-    (.\Get-MSIZapInfo.ps1  | Where-Object -FilterScript  {$_.Displayname -match "Silverlight"}).AllPatchesEverinstalled | ft -AutoSize
+    (Get-MSIZapInfo | Where-Object -FilterScript  {$_.Displayname -match "Silverlight"}).AllPatchesEverinstalled |
+     ft -AutoSize
     Look for Silverlight and show all its patches ever installed
   
 .EXAMPLE
-    .\Get-MSIZapInfo.ps1 | Where-Object -FilterScript  {$_.Displayname -match "Microsoft Office" } | fl -Property Displayname,RegistryGUID,UninstallString,ConvertedGUID
+    Get-MSIZapInfo | Where-Object -FilterScript  {$_.Displayname -match "Microsoft Office" } | 
+    fl -Property Displayname,RegistryGUID,UninstallString,ConvertedGUID
   
 .EXAMPLE    
-    Invoke-Command -ComputerName RemoteComputername -FilePath .\Get-MSIzap.ps1    
+    $sb=[scriptblock]::Create((Get-Command Get-MSIZapInfo).Definition)
+    Invoke-Command -ComputerName RemoteComputername -ScriptBlock $sb
     List all MSI products of a remote computer
   
 .EXAMPLE        
-    (Invoke-Command -ComputerName RemoteComupterName -FilePath .\Get-MSIzap.ps1) | % {$_.AllPatchesEverinstalled}
+    $sb=[scriptblock]::Create((Get-Command Get-MSIZapInfo).Definition)
+    (Invoke-Command -ComputerName RemoteComupterName -ScriptBlock $sb) | % {$_.AllPatchesEverinstalled}
     List all MSI products patches ever installed on a remote computer
   
 .EXAMPLE
-    $all = .\Get-MSIZapInfo.ps1
-    foreach ($j in $all)
-    {
-        if ($j.AllPatchesEverinstalled -ne $null)
-        {
-            $j.AllPatchesEverinstalled | Where-Object {$_.Superseded -eq $false} |  ft -AutoSize -Property LocalPackage,Superseded,DisplayName 
-  
+    Get-MSIZapInfo | % {
+        if ($null -ne $_.AllPatchesEverinstalled) {
+            $_.AllPatchesEverinstalled | 
+            Where-Object {$_.Superseded -eq $false} |  
+            ft -AutoSize -Property LocalPackage,Superseded,DisplayName 
         }
     }    
     Show non supersed patches of all installed MSI products
   
 #>
-  
-param
-(
-[parameter(Mandatory=$false,Position=0)][switch]$ShowSupersededPatches
+Param(
+    [parameter(Mandatory=$false,Position=0)]
+    [switch]$ShowSupersededPatches
 )
-  
+Begin {  
 Function Test-MatchFromHashTable
 {
 param(
@@ -249,7 +252,8 @@ param(
 }
 # Convert-RegistryGUID -String "00004109110000000000000000F01FEC"
   
-  
+}
+Process {  
 # Main: read info in the registry and populate array with object that have the properties we are looking for
   
 if (Test-Path HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData)
@@ -387,4 +391,7 @@ if ($ShowSupersededPatches)
     return $Supersededpatches
 } else {
     return $prodcutssar
+}
+}
+End {}
 }
