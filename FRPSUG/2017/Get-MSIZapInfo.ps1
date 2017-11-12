@@ -76,7 +76,7 @@ Function Get-MSIZapInfo {
 #>
 [CmdletBinding()]
 Param(
-    [parameter(Mandatory=$false,Position=0)]
+    [Parameter()]
     [switch]$ShowSupersededPatches
 )
 Begin {  
