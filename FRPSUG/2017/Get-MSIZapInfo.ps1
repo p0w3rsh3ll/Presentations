@@ -188,44 +188,34 @@ Process {
                                     }
                                 )
                             ) ; # AllCurrentPatchesInstalled
-                        }
-    
-                        # Cycle to all patches found by reading subkeys
-                        $Allproductpatches = Get-Childitem "$productkey\Patches"
-                        $AllpatchesInstalled = @()
-                        if ($Allproductpatches -ne $null)
-                        {
-                            foreach ($l in $Allproductpatches)
-                            {
-                                $patchesubkey = Join-Path -Path $l.PSParentPath -ChildPath $l.PSChildName
-                                $patchproperties = Get-ItemProperty -Path $patchesubkey
+                            AllPatchesEverInstalled = $(
+                                # Cycle to all patches found by reading subkeys
+                                Get-Childitem -Path "$productkey\Patches" | 
+                                ForEach-Object {
+                                    $l = $_
+                    
+                                    $pap = Get-ItemProperty -Path (Join-Path -Path $l.PSParentPath -ChildPath $l.PSChildName)
   
-                                $PatchObj = New-Object -TypeName PSObject -Property @{            
-                                    RegistryGUID = $l.PSChildName
-                                    Displayname =$patchproperties.DisplayName
-                                    InstallDate = ([System.DateTime]::ParseExact($patchproperties.Installed,"yyyyMMdd",[System.Globalization.CultureInfo]::InvariantCulture))
+                                    [PSCustomObject]@{            
+                                        RegistryGUID = $l.PSChildName
+                                        Displayname =$pap.DisplayName
+                                        InstallDate = ([System.DateTime]::ParseExact($pap.Installed,'yyyyMMdd',[System.Globalization.CultureInfo]::InvariantCulture))
+                                        Superseded =$( 
+                                            Switch ($pap.State) {
+                                                2 { $true  ; break }
+                                                1 { $false ; break }
+                                                default {'Unknown'}
+                                            }
+                                        )
+                                        LocalPackage = $(
+                                            ($patchesar | Where { $_.RegistryGUID -eq $l.PSChildName }).LocalPackage
+                                        )
                                     }
-  
-                                # Prepare to define a supersedence property
-                                switch ($patchproperties.State)
-                                {
-                                    2 { $Superseded = $true}
-                                    1 { $Superseded = $false}
-                                    default { $Superseded = "Unknown"}
-                                }                    
-                                $PatchObj | add-member Noteproperty -Name Superseded -Value $Superseded
-  
-                                if (Test-MatchFromHashTable -array $patchesar -testkey RegistryGUID -string $PatchObj.RegistryGUID)
-                                {
-                                   $PatchObj | add-member Noteproperty -Name LocalPackage -Value (Get-MatchFromHashTable -array $patchesar -testkey RegistryGUID -string $PatchObj.RegistryGUID).LocalPackage
                                 }
-                                # Add to array
-                                $AllpatchesInstalled += $PatchObj
-                            }
+
+                            ) # AllPatchesEverInstalled
                         }
-  
-                        $ProductObj | add-member Noteproperty -Name AllPatchesEverinstalled -Value $AllpatchesInstalled
-  
+ 
                     } else {
                         Write-Warning -Message "$($productkey)\InstallProperties not found"
                     }  
