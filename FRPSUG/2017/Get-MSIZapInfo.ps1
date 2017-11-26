@@ -115,7 +115,7 @@ Process {
   
         # Initialize the patches and products global array
         $patchesar = @()
-        $prodcutssar = @()
+        $productssar = @()
   
         # Cycle through all SIDs
         Get-Childitem -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData' | 
