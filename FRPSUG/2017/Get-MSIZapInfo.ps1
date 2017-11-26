@@ -208,7 +208,7 @@ Process {
                                             }
                                         )
                                         LocalPackage = $(
-                                            ($patchesar | Where { $_.RegistryGUID -eq $l.PSChildName }).LocalPackage
+                                            ($patchesar | Where-Object { $_.RegistryGUID -eq $l.PSChildName }).LocalPackage
                                         )
                                     }
                                 }
