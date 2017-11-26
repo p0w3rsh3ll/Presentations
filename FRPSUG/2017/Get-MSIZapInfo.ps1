@@ -170,28 +170,26 @@ Process {
                         $ipr = Get-ItemProperty -Path $productkey\InstallProperties
   
                         # Populate our object with all the properties we are interested in
-                        $ProductObj = New-Object -TypeName PSObject -Property @{  
+                        $productssar += [PSCustomObject]@{  
                             InstalledBy = $UserWhoInstalled
                             RegistryGUID = $j.PSChildName
-                            Displayname = $productInstallProperties.DisplayName
-                            Publisher = $productInstallProperties.Publisher
-                            DisplayVersion = $productInstallProperties.DisplayVersion
-                            InstallDate = ([System.DateTime]::ParseExact($productInstallProperties.InstallDate,"yyyyMMdd",[System.Globalization.CultureInfo]::InvariantCulture))
-                            LocalPackage = $productInstallProperties.LocalPackage
-                            UninstallString = ($productInstallProperties.UninstallString -replace "msiexec\.exe\s/[IX]{1}","")
+                            Displayname = $ipr.DisplayName
+                            Publisher = $ipr.Publisher
+                            DisplayVersion = $ipr.DisplayVersion
+                            InstallDate = ([System.DateTime]::ParseExact($ipr.InstallDate,'yyyyMMdd',[System.Globalization.CultureInfo]::InvariantCulture))
+                            LocalPackage = $ipr.LocalPackage
+                            UninstallString = ($ipr.UninstallString -replace 'msiexec\.exe\s/[IX]{1}','')
                             ConvertedGUID = (Convert-RegistryGUID -String $j.PSChildName)
-                            }
-  
-                        # Get the list of patches GUID for a product
-  
-                        # Build the array of current patches w/o superseded patches from the Allpatches value found in the registry
-                        $AllpatchesValuear = @()
-                        $AllpatchesValue = (Get-ItemProperty -Path $productkey\Patches).Allpatches -split "`n"
-                        for ($i = 0 ; $i -le ($AllpatchesValue.Count - 1) ; $i++)
-                        {
-                            $AllpatchesValuear += $AllpatchesValue[$i]
+                            AllCurrentPatchesInstalled = $(
+                                @(
+                                    (Get-ItemProperty -Path $productkey\Patches).Allpatches -split "`n" | 
+                                    ForEach-Object {
+                                        $_
+                                    }
+                                )
+                            ) ; # AllCurrentPatchesInstalled
                         }
-  
+    
                         # Cycle to all patches found by reading subkeys
                         $Allproductpatches = Get-Childitem "$productkey\Patches"
                         $AllpatchesInstalled = @()
@@ -227,10 +225,7 @@ Process {
                         }
   
                         $ProductObj | add-member Noteproperty -Name AllPatchesEverinstalled -Value $AllpatchesInstalled
-                        $ProductObj | add-member Noteproperty -Name AllCurrentPatchesinstalled -Value $AllpatchesValuear
   
-                        # Add our object to the global array
-                        $prodcutssar += $ProductObj
                     } else {
                         Write-Warning -Message "$($productkey)\InstallProperties not found"
                     }  
