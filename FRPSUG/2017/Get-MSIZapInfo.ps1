@@ -154,81 +154,86 @@ Process {
             }
   
             # Get the list of products and their properties
-            if (Test-Path "$subkey\Products")
-            {
-                $products = Get-Childitem "$subkey\Products"
-  
-                foreach ($j in $products)
-                {
+            if (Test-Path -Path "$subkey\Products" -PathType Container) {
+            
+                Get-Childitem  -Path "$subkey\Products" | 
+                ForEach-Object {
+                    $j = $_
+
                     Write-Verbose -Message "Dealing with $($j.Name)" # -Verbose:$true
   
                     # Build the subkey and gather all properties
                     $productkey = Join-Path -Path $j.PSParentPath -ChildPath $j.PSChildName
-                    $productInstallProperties = Get-ItemProperty -Path $productkey\InstallProperties
+
+                    if (Test-Path -Path "$($productkey)\InstallProperties" -PathType Container) {
+                    
+                        $ipr = Get-ItemProperty -Path $productkey\InstallProperties
   
-                    # Populate our object with all the properties we are interested in
-                    $ProductObj = New-Object -TypeName PSObject -Property @{  
-                        InstalledBy = $UserWhoInstalled
-                        RegistryGUID = $j.PSChildName
-                        Displayname = $productInstallProperties.DisplayName
-                        Publisher = $productInstallProperties.Publisher
-                        DisplayVersion = $productInstallProperties.DisplayVersion
-                        InstallDate = ([System.DateTime]::ParseExact($productInstallProperties.InstallDate,"yyyyMMdd",[System.Globalization.CultureInfo]::InvariantCulture))
-                        LocalPackage = $productInstallProperties.LocalPackage
-                        UninstallString = ($productInstallProperties.UninstallString -replace "msiexec\.exe\s/[IX]{1}","")
-                        ConvertedGUID = (Convert-RegistryGUID -String $j.PSChildName)
-                        }
-  
-                    # Get the list of patches GUID for a product
-  
-                    # Build the array of current patches w/o superseded patches from the Allpatches value found in the registry
-                    $AllpatchesValuear = @()
-                    $AllpatchesValue = (Get-ItemProperty -Path $productkey\Patches).Allpatches -split "`n"
-                    for ($i = 0 ; $i -le ($AllpatchesValue.Count - 1) ; $i++)
-                    {
-                        $AllpatchesValuear += $AllpatchesValue[$i]
-                    }
-  
-                    # Cycle to all patches found by reading subkeys
-                    $Allproductpatches = Get-Childitem "$productkey\Patches"
-                    $AllpatchesInstalled = @()
-                    if ($Allproductpatches -ne $null)
-                    {
-                        foreach ($l in $Allproductpatches)
-                        {
-                            $patchesubkey = Join-Path -Path $l.PSParentPath -ChildPath $l.PSChildName
-                            $patchproperties = Get-ItemProperty -Path $patchesubkey
-  
-                            $PatchObj = New-Object -TypeName PSObject -Property @{            
-                                RegistryGUID = $l.PSChildName
-                                Displayname =$patchproperties.DisplayName
-                                InstallDate = ([System.DateTime]::ParseExact($patchproperties.Installed,"yyyyMMdd",[System.Globalization.CultureInfo]::InvariantCulture))
-                                }
-  
-                            # Prepare to define a supersedence property
-                            switch ($patchproperties.State)
-                            {
-                                2 { $Superseded = $true}
-                                1 { $Superseded = $false}
-                                default { $Superseded = "Unknown"}
-                            }                    
-                            $PatchObj | add-member Noteproperty -Name Superseded -Value $Superseded
-  
-                            if (Test-MatchFromHashTable -array $patchesar -testkey RegistryGUID -string $PatchObj.RegistryGUID)
-                            {
-                               $PatchObj | add-member Noteproperty -Name LocalPackage -Value (Get-MatchFromHashTable -array $patchesar -testkey RegistryGUID -string $PatchObj.RegistryGUID).LocalPackage
+                        # Populate our object with all the properties we are interested in
+                        $ProductObj = New-Object -TypeName PSObject -Property @{  
+                            InstalledBy = $UserWhoInstalled
+                            RegistryGUID = $j.PSChildName
+                            Displayname = $productInstallProperties.DisplayName
+                            Publisher = $productInstallProperties.Publisher
+                            DisplayVersion = $productInstallProperties.DisplayVersion
+                            InstallDate = ([System.DateTime]::ParseExact($productInstallProperties.InstallDate,"yyyyMMdd",[System.Globalization.CultureInfo]::InvariantCulture))
+                            LocalPackage = $productInstallProperties.LocalPackage
+                            UninstallString = ($productInstallProperties.UninstallString -replace "msiexec\.exe\s/[IX]{1}","")
+                            ConvertedGUID = (Convert-RegistryGUID -String $j.PSChildName)
                             }
-                            # Add to array
-                            $AllpatchesInstalled += $PatchObj
+  
+                        # Get the list of patches GUID for a product
+  
+                        # Build the array of current patches w/o superseded patches from the Allpatches value found in the registry
+                        $AllpatchesValuear = @()
+                        $AllpatchesValue = (Get-ItemProperty -Path $productkey\Patches).Allpatches -split "`n"
+                        for ($i = 0 ; $i -le ($AllpatchesValue.Count - 1) ; $i++)
+                        {
+                            $AllpatchesValuear += $AllpatchesValue[$i]
                         }
-                    }
   
-                    $ProductObj | add-member Noteproperty -Name AllPatchesEverinstalled -Value $AllpatchesInstalled
-                    $ProductObj | add-member Noteproperty -Name AllCurrentPatchesinstalled -Value $AllpatchesValuear
+                        # Cycle to all patches found by reading subkeys
+                        $Allproductpatches = Get-Childitem "$productkey\Patches"
+                        $AllpatchesInstalled = @()
+                        if ($Allproductpatches -ne $null)
+                        {
+                            foreach ($l in $Allproductpatches)
+                            {
+                                $patchesubkey = Join-Path -Path $l.PSParentPath -ChildPath $l.PSChildName
+                                $patchproperties = Get-ItemProperty -Path $patchesubkey
   
-                    # Add our object to the global array
-                    $prodcutssar += $ProductObj
+                                $PatchObj = New-Object -TypeName PSObject -Property @{            
+                                    RegistryGUID = $l.PSChildName
+                                    Displayname =$patchproperties.DisplayName
+                                    InstallDate = ([System.DateTime]::ParseExact($patchproperties.Installed,"yyyyMMdd",[System.Globalization.CultureInfo]::InvariantCulture))
+                                    }
   
+                                # Prepare to define a supersedence property
+                                switch ($patchproperties.State)
+                                {
+                                    2 { $Superseded = $true}
+                                    1 { $Superseded = $false}
+                                    default { $Superseded = "Unknown"}
+                                }                    
+                                $PatchObj | add-member Noteproperty -Name Superseded -Value $Superseded
+  
+                                if (Test-MatchFromHashTable -array $patchesar -testkey RegistryGUID -string $PatchObj.RegistryGUID)
+                                {
+                                   $PatchObj | add-member Noteproperty -Name LocalPackage -Value (Get-MatchFromHashTable -array $patchesar -testkey RegistryGUID -string $PatchObj.RegistryGUID).LocalPackage
+                                }
+                                # Add to array
+                                $AllpatchesInstalled += $PatchObj
+                            }
+                        }
+  
+                        $ProductObj | add-member Noteproperty -Name AllPatchesEverinstalled -Value $AllpatchesInstalled
+                        $ProductObj | add-member Noteproperty -Name AllCurrentPatchesinstalled -Value $AllpatchesValuear
+  
+                        # Add our object to the global array
+                        $prodcutssar += $ProductObj
+                    } else {
+                        Write-Warning -Message "$($productkey)\InstallProperties not found"
+                    }  
                 } # end of foreach
             } # end of if test-path products
         } # end of foreach root
