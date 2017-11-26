@@ -224,21 +224,16 @@ Process {
         } # end of foreach root
     } # end of test-path
   
-    if ($ShowSupersededPatches)
-    {
+    if ($ShowSupersededPatches) {
         # Superseded patches
-        $Supersededpatches = @()
-        foreach ($j in $prodcutssar)
-        {
-            if ($j.AllPatchesEverinstalled -ne $null)
-            {
-                $Supersededpatches += ($j.AllPatchesEverinstalled | Where-Object {$_.Superseded -eq $true})
-  
+        $productssar | 
+        ForEach-Object {
+            if ($null -ne $_.AllPatchesEverinstalled) {
+                $_.AllPatchesEverinstalled | Where-Object {$_.Superseded}
             }
         }
-        return $Supersededpatches
     } else {
-        return $prodcutssar
+        $productssar
     }
 }
 End {}
